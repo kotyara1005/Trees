@@ -1,7 +1,5 @@
 package node
 
-// t - minimum degree
-
 type Node struct {
 	IsLeaf bool
 	N      int
@@ -20,6 +18,7 @@ func Write(link *Node) {
 }
 
 func Allocate(t int) *Node {
+	// t - minimum degree
 	node := new(Node)
 	node.Keys = make([]int, 2*t-1)
 	node.Links = make([]*Node, 2*t)

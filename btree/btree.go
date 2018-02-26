@@ -1,9 +1,10 @@
 package btree
 
 import (
-	"btree/node"
 	"fmt"
 	"sort"
+
+	"github.com/kotyara1005/trees/btree/node"
 )
 
 // TODO improve search

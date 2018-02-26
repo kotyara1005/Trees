@@ -1,8 +1,9 @@
 package main
 
 import (
-	"btree"
 	"fmt"
+
+	"github.com/kotyara1005/trees/btree"
 )
 
 func main() {
