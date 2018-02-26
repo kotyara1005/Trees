@@ -4,19 +4,22 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/kotyara1005/trees/btree/node"
+	"github.com/kotyara1005/trees/node"
+	"github.com/kotyara1005/trees/utils"
 )
 
-// TODO improve search
-// TODO add not uniq index
 // TODO implement B+
+// TODO add not uniq index
+// TODO improve search
 // TODO fix worse case
 
+// BTree class
 type BTree struct {
 	root *node.Node
 	t    int
 }
 
+// Create new BTree
 func Create(t int) *BTree {
 	x := node.Allocate(t)
 	x.IsLeaf = true
@@ -28,6 +31,7 @@ func Create(t int) *BTree {
 	return tree
 }
 
+// Insert new key to BTree
 func (tree *BTree) Insert(key int) {
 	if tree.root.N == 2*tree.t-1 {
 		root := tree.root
@@ -35,12 +39,12 @@ func (tree *BTree) Insert(key int) {
 		tree.root.IsLeaf = false
 		tree.root.N = 0
 		tree.root.Links[0] = root
-		tree.SplitChild(tree.root, 0)
+		tree.splitChild(tree.root, 0)
 	}
-	tree.InsertNonfull(tree.root, key)
+	tree.insertNonfull(tree.root, key)
 }
 
-func (tree *BTree) SplitChild(parent *node.Node, i int) {
+func (tree *BTree) splitChild(parent *node.Node, i int) {
 	newNode := node.Allocate(tree.t)
 	child := parent.Links[i]
 	newNode.IsLeaf = child.IsLeaf
@@ -62,23 +66,22 @@ func (tree *BTree) SplitChild(parent *node.Node, i int) {
 		parent.Keys[j+1] = parent.Keys[j]
 	}
 	parent.Keys[i] = child.Keys[tree.t-1]
-	parent.N += 1
+	parent.N++
 	node.Write(child)
 	node.Write(newNode)
 	node.Write(parent)
 }
 
-func (tree *BTree) InsertNonfull(n *node.Node, key int) {
+func (tree *BTree) insertNonfull(n *node.Node, key int) {
 	i := n.N - 1
 	if n.IsLeaf {
 		fmt.Println(n)
 		for i >= 0 && key < n.Keys[i] {
 			n.Keys[i+1] = n.Keys[i]
-			i -= 1
+			i--
 		}
-		// fmt.Println(i, *n)
 		n.Keys[i+1] = key
-		n.N += 1
+		n.N++
 		node.Write(n)
 	} else {
 		for i >= 0 && key < n.Keys[i] {
@@ -89,24 +92,25 @@ func (tree *BTree) InsertNonfull(n *node.Node, key int) {
 		fmt.Println(next)
 		fmt.Println(i)
 		if next.N == 2*tree.t-1 {
-			tree.SplitChild(n, i)
+			tree.splitChild(n, i)
 			if key > n.Keys[i] {
 				i = i + 1
 				next = node.Read(n.Links[i])
 			}
 		}
 		fmt.Println(n, i)
-		tree.InsertNonfull(next, key)
+		tree.insertNonfull(next, key)
 	}
 }
 
+// Search first key in BTree
 func (tree *BTree) Search(key int) (*node.Node, int) {
 	return search(tree.root, key)
 }
 
 func search(n *node.Node, key int) (*node.Node, int) {
 	i := sort.Search(n.N, func(i int) bool {
-		return n.Keys[i] >= key
+		return key <= n.Keys[i]
 	})
 	if i < n.N && key == n.Keys[i] {
 		return n, i
@@ -117,27 +121,30 @@ func search(n *node.Node, key int) (*node.Node, int) {
 	}
 }
 
+// func searchAll(n *node.Node, key int) (*node.Node, int) {
+// 	i := sort.Search(n.N, func(i int) bool {
+// 		return key <= n.Keys[i]
+// 	})
+// 	fmt.Println(i)
+// 	if i < n.N && key == n.Keys[i] {
+// 		fmt.Println(n, i)
+// 		fmt.Println(node.Read(n.Links[i]))
+// 		return search(node.Read(n.Links[i+1]), key, all)
+// 	}
+// 	if n.IsLeaf {
+// 		return nil, -1
+// 	} else {
+// 		return search(node.Read(n.Links[i]), key, all)
+// 	}
+// }
+
+// Print BTree
 func (tree *BTree) Print() {
 	fmt.Println(*tree)
-	printTree(tree.root)
+	utils.PrintTree(tree.root)
 }
 
-func printTree(n *node.Node) {
-	fmt.Println(n)
-	for i := 0; i < n.N; i++ {
-		fmt.Println(n.Keys[i])
-	}
-	if !n.IsLeaf {
-		for i := 0; i <= n.N; i++ {
-			printTree(n.Links[i])
-		}
-	}
-}
-
+// Remove key from BTree
 func Remove() {
-	// TODO
-}
-
-func Rebuild() {
 	// TODO
 }

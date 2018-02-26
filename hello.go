@@ -14,6 +14,7 @@ func main() {
 	for i := 1; i <= 10; i++ {
 		t.Insert(i)
 	}
+	t.Insert(2)
 	fmt.Println("==============")
 	t.Print()
 	fmt.Println("==============")
