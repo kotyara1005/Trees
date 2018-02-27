@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/kotyara1005/trees/node"
+	"github.com/kotyara1005/trees/bplustree/node"
 	"github.com/kotyara1005/trees/utils"
 )
 
@@ -33,7 +33,7 @@ func Create(t int) *BPlusTree {
 
 // Insert new key to BTree
 func (tree *BPlusTree) Insert(key int) {
-	if tree.root.N == 2*tree.t - 1 {
+	if tree.root.N == 2*tree.t-1 {
 		root := tree.root
 		tree.root = node.Allocate(tree.t)
 		tree.root.IsLeaf = false
@@ -90,7 +90,7 @@ func (tree *BPlusTree) insertNonfull(n *node.Node, key int) {
 		next := node.Read(n.Links[i])
 		fmt.Println(next)
 		fmt.Println(i)
-		if next.N == 2*tree.t - 1 {
+		if next.N == 2*tree.t-1 {
 			tree.splitChild(n, i)
 			if key > n.Keys[i] {
 				i = i + 1

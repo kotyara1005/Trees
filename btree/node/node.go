@@ -8,11 +8,6 @@ type Node struct {
 	Links []*Node
 }
 
-// type MultipleKeysNode struct {
-// 	Node
-// 	KeysCount []int
-// }
-
 func Read(link *Node) *Node {
 	// TODO read from disk
 	return link

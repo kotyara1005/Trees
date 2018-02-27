@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/kotyara1005/trees/node"
+	"github.com/kotyara1005/trees/btree/node"
 	"github.com/kotyara1005/trees/utils"
 )
 
