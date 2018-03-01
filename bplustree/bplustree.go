@@ -182,10 +182,13 @@ func (tree *BPlusTree) Search(key int) (*node.Node, int) {
 
 func search(n *node.Node, key int) (*node.Node, int) {
 	i := sort.Search(n.N, func(i int) bool {
-		return key <= n.Keys[i]
+		return key < n.Keys[i]
 	})
 	if n.IsLeaf {
-		if i < n.N && key == n.Keys[i] {
+		fmt.Println(n)
+		fmt.Println(i)
+		i--
+		if i < n.N && i > 0 && key == n.Keys[i] {
 			return n, i
 		}
 		return nil, -1
