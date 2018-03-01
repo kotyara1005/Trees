@@ -5,7 +5,6 @@ import (
 	"sort"
 
 	"github.com/kotyara1005/trees/bplustree/node"
-	"github.com/kotyara1005/trees/utils"
 )
 
 // TODO implement B+
@@ -31,20 +30,27 @@ func Create(t int) *BPlusTree {
 	return tree
 }
 
-// Insert new key to BTree
-func (tree *BPlusTree) Insert(key int) {
-	if tree.root.N == 2*tree.t-1 {
-		root := tree.root
-		tree.root = node.Allocate(tree.t)
-		tree.root.IsLeaf = false
-		tree.root.N = 0
-		tree.root.Links[0] = root
-		tree.splitChild(tree.root, 0)
-	}
-	tree.insertNonfull(tree.root, key)
+// GetMaxKeysCount return double t
+func (tree *BPlusTree) GetMaxKeysCount() int {
+	return tree.t * 2
 }
 
-func (tree *BPlusTree) splitChild(parent *node.Node, i int) {
+// Insert new key to BPlusTree
+func (tree *BPlusTree) Insert(key int) {
+	key, newChild := tree.insertNonfull(tree.root, key)
+	if newChild != nil {
+		oldRoot := tree.root
+		tree.root = node.Allocate(tree.t)
+		tree.root.IsLeaf = false
+		tree.root.N = 1
+		tree.root.Keys[0] = key
+		tree.root.Links[0] = oldRoot
+		tree.root.Links[1] = newChild
+	}
+}
+
+func (tree *BPlusTree) splitChild1(parent *node.Node, i int) {
+	// create new node
 	newNode := node.Allocate(tree.t)
 	child := parent.Links[i]
 	newNode.IsLeaf = child.IsLeaf
@@ -72,32 +78,100 @@ func (tree *BPlusTree) splitChild(parent *node.Node, i int) {
 	node.Write(parent)
 }
 
-func (tree *BPlusTree) insertNonfull(n *node.Node, key int) {
+// Returns delimiter, new Node
+func (tree *BPlusTree) splitNode(n *node.Node, key int, link *node.Node) (int, *node.Node) {
+	fmt.Println(n)
+	splitOffset := tree.t + 1
+
+	pos := sort.Search(n.N, func(i int) bool {
+		return key <= n.Keys[i]
+	})
+	if pos < splitOffset {
+		splitOffset--
+	}
+
+	newNode := node.Allocate(tree.t)
+	newNode.IsLeaf = n.IsLeaf
+	newNode.N = n.N - splitOffset
+
+	for i := 0; i < newNode.N; i++ {
+		newNode.Keys[i] = n.Keys[splitOffset+i]
+	}
+	if !n.IsLeaf {
+		for i := 0; i < newNode.N+1; i++ {
+			newNode.Links[i] = n.Links[splitOffset+i]
+		}
+	}
+	n.N = splitOffset
+
+	var iNode *node.Node
+	if pos < splitOffset {
+		iNode = n
+	} else {
+		iNode = newNode
+	}
+	var i int
+	for i = iNode.N - 1; i >= 0 && key < iNode.Keys[i]; i-- {
+		iNode.Keys[i+1] = iNode.Keys[i]
+	}
+	iNode.Keys[i+1] = key
+	iNode.N++
+
+	if !iNode.IsLeaf {
+		var j int
+		for j = iNode.N; j > i+1; j-- {
+			iNode.Links[j+1] = iNode.Links[j]
+		}
+		iNode.Links[j+1] = link
+	}
+	fmt.Println(n, newNode)
+	return newNode.Keys[0], newNode
+}
+
+func (tree *BPlusTree) insertNonfull(n *node.Node, key int) (int, *node.Node) {
+	// check node writes
 	i := n.N - 1
 	if n.IsLeaf {
-		for i >= 0 && key < n.Keys[i] {
-			n.Keys[i+1] = n.Keys[i]
-			i--
+		if n.N == tree.GetMaxKeysCount() {
+			return tree.splitNode(n, key, nil)
+		} else {
+			for i >= 0 && key < n.Keys[i] {
+				n.Keys[i+1] = n.Keys[i]
+				i--
+			}
+			n.Keys[i+1] = key
+			n.N++
+			return key, nil
 		}
-		n.Keys[i+1] = key
-		n.N++
-		node.Write(n)
 	} else {
 		for i >= 0 && key < n.Keys[i] {
 			i = i - 1
 		}
 		i = i + 1
 		next := node.Read(n.Links[i])
-		fmt.Println(next)
-		fmt.Println(i)
-		if next.N == 2*tree.t-1 {
-			tree.splitChild(n, i)
-			if key > n.Keys[i] {
-				i = i + 1
-				next = node.Read(n.Links[i])
+
+		key, newChild := tree.insertNonfull(next, key)
+		fmt.Println(key, newChild)
+		if newChild != nil {
+			if n.N == tree.GetMaxKeysCount() {
+				return tree.splitNode(n, key, newChild)
+			} else {
+				for i = n.N - 1; i >= 0 && key < n.Keys[i]; i-- {
+					n.Keys[i+1] = n.Keys[i]
+				}
+				n.Keys[i+1] = key
+				n.N++
+
+				var j int
+				for j = n.N; j > i+1; j-- {
+					n.Links[j+1] = n.Links[j]
+				}
+				fmt.Println(j)
+				n.Links[j+1] = newChild
+				return key, nil
 			}
 		}
-		tree.insertNonfull(next, key)
+		return key, nil
 	}
 }
 
@@ -113,12 +187,10 @@ func search(n *node.Node, key int) (*node.Node, int) {
 	if n.IsLeaf {
 		if i < n.N && key == n.Keys[i] {
 			return n, i
-		} else {
-			return nil, -1
 		}
-	} else {
-		return search(node.Read(n.Links[i]), key)
+		return nil, -1
 	}
+	return search(node.Read(n.Links[i]), key)
 }
 
 // func searchAll(n *node.Node, key int) (*node.Node, int) {
@@ -141,7 +213,19 @@ func search(n *node.Node, key int) (*node.Node, int) {
 // Print BTree
 func (tree *BPlusTree) Print() {
 	fmt.Println(*tree)
-	utils.PrintTree(tree.root)
+	PrintTree(tree.root)
+}
+
+func PrintTree(n *node.Node) {
+	fmt.Println(n)
+	for i := 0; i < n.N; i++ {
+		fmt.Println(n.Keys[i])
+	}
+	if !n.IsLeaf {
+		for i := 0; i <= n.N; i++ {
+			PrintTree(n.Links[i])
+		}
+	}
 }
 
 // Remove key from BTree
