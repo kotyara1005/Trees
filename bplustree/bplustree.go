@@ -155,9 +155,9 @@ func search(n *node.Node, key int) (*node.Node, int) {
 	})
 	if n.IsLeaf {
 		fmt.Println(n)
-		fmt.Println(i)
+		fmt.Println(i, key, n.Keys[i - 1])
 		i--
-		if i < n.N && i > 0 && key == n.Keys[i] {
+		if i < n.N && i >= 0 && key == n.Keys[i] {
 			return n, i
 		}
 		return nil, -1

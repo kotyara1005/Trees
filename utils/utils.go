@@ -3,7 +3,7 @@ package utils
 import (
 	"fmt"
 
-	"github.com/kotyara1005/trees/node"
+	"github.com/kotyara1005/trees/btree/node"
 )
 
 type Tree interface {
