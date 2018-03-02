@@ -37,7 +37,7 @@ func (tree *BPlusTree) GetMaxKeysCount() int {
 
 // Insert new key to BPlusTree
 func (tree *BPlusTree) Insert(key int) {
-	key, newChild := tree.insertNonfull(tree.root, key)
+	key, newChild := tree.insert(tree.root, key)
 	if newChild != nil {
 		oldRoot := tree.root
 		tree.root = node.Allocate(tree.t)
@@ -104,43 +104,23 @@ func (tree *BPlusTree) splitNode(n *node.Node, key int, link *node.Node) (int, *
 	}
 	n.N = splitOffset
 
-	var iNode *node.Node
 	if pos < splitOffset {
-		iNode = n
+		n.Insert(key, link)
 	} else {
-		iNode = newNode
-	}
-	var i int
-	for i = iNode.N - 1; i >= 0 && key < iNode.Keys[i]; i-- {
-		iNode.Keys[i+1] = iNode.Keys[i]
-	}
-	iNode.Keys[i+1] = key
-	iNode.N++
-
-	if !iNode.IsLeaf {
-		var j int
-		for j = iNode.N; j > i+1; j-- {
-			iNode.Links[j+1] = iNode.Links[j]
-		}
-		iNode.Links[j+1] = link
+		newNode.Insert(key, link)
 	}
 	fmt.Println(n, newNode)
 	return newNode.Keys[0], newNode
 }
 
-func (tree *BPlusTree) insertNonfull(n *node.Node, key int) (int, *node.Node) {
+func (tree *BPlusTree) insert(n *node.Node, key int) (int, *node.Node) {
 	// check node writes
 	i := n.N - 1
 	if n.IsLeaf {
 		if n.N == tree.GetMaxKeysCount() {
 			return tree.splitNode(n, key, nil)
 		} else {
-			for i >= 0 && key < n.Keys[i] {
-				n.Keys[i+1] = n.Keys[i]
-				i--
-			}
-			n.Keys[i+1] = key
-			n.N++
+			n.Insert(key, nil)
 			return key, nil
 		}
 	} else {
@@ -150,24 +130,13 @@ func (tree *BPlusTree) insertNonfull(n *node.Node, key int) (int, *node.Node) {
 		i = i + 1
 		next := node.Read(n.Links[i])
 
-		key, newChild := tree.insertNonfull(next, key)
+		key, newChild := tree.insert(next, key)
 		fmt.Println(key, newChild)
 		if newChild != nil {
 			if n.N == tree.GetMaxKeysCount() {
 				return tree.splitNode(n, key, newChild)
 			} else {
-				for i = n.N - 1; i >= 0 && key < n.Keys[i]; i-- {
-					n.Keys[i+1] = n.Keys[i]
-				}
-				n.Keys[i+1] = key
-				n.N++
-
-				var j int
-				for j = n.N; j > i+1; j-- {
-					n.Links[j+1] = n.Links[j]
-				}
-				fmt.Println(j)
-				n.Links[j+1] = newChild
+				n.Insert(key, newChild)
 				return key, nil
 			}
 		}
