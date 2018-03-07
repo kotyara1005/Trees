@@ -8,8 +8,6 @@ import (
 )
 
 // TODO add not uniq index
-// TODO improve search
-// TODO fix worse case
 
 // BPlusTree class
 type BPlusTree struct {
@@ -34,6 +32,11 @@ func (tree *BPlusTree) GetMaxKeysCount() int {
 	return tree.t * 2
 }
 
+// GetSplitOffset return t + 1
+func (tree *BPlusTree) GetSplitOffset() int {
+	return tree.t + 1
+}
+
 // Insert new key to BPlusTree
 func (tree *BPlusTree) Insert(key int) {
 	key, newChild := tree.insert(tree.root, key)
@@ -50,11 +53,11 @@ func (tree *BPlusTree) Insert(key int) {
 
 // Returns delimiter, new Node
 func (tree *BPlusTree) splitNode(n *node.Node, key int, link *node.Node) (int, *node.Node) {
-	splitOffset := tree.t + 1
-
 	pos := sort.Search(n.N, func(i int) bool {
 		return key <= n.Keys[i]
 	})
+	splitOffset := tree.GetSplitOffset()
+
 	if pos < splitOffset {
 		splitOffset--
 	}
