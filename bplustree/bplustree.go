@@ -7,7 +7,6 @@ import (
 	"github.com/kotyara1005/trees/bplustree/node"
 )
 
-// TODO implement B+
 // TODO add not uniq index
 // TODO improve search
 // TODO fix worse case
@@ -49,35 +48,6 @@ func (tree *BPlusTree) Insert(key int) {
 	}
 }
 
-func (tree *BPlusTree) splitChild1(parent *node.Node, i int) {
-	// create new node
-	newNode := node.Allocate(tree.t)
-	child := parent.Links[i]
-	newNode.IsLeaf = child.IsLeaf
-	newNode.N = tree.t - 1
-	for j := 0; j < tree.t-1; j++ {
-		newNode.Keys[j] = child.Keys[j+tree.t]
-	}
-	if !child.IsLeaf {
-		for j := 0; j < tree.t; j++ {
-			newNode.Links[j] = child.Links[j+tree.t]
-		}
-	}
-	child.N = tree.t
-	for j := parent.N + 1; j > i+1; j-- {
-		parent.Links[j+1] = parent.Links[j]
-	}
-	parent.Links[i+1] = newNode
-	for j := parent.N; j > i; j-- {
-		parent.Keys[j+1] = parent.Keys[j]
-	}
-	parent.Keys[i] = child.Keys[tree.t-1]
-	parent.N++
-	node.Write(child)
-	node.Write(newNode)
-	node.Write(parent)
-}
-
 // Returns delimiter, new Node
 func (tree *BPlusTree) splitNode(n *node.Node, key int, link *node.Node) (int, *node.Node) {
 	fmt.Println(n)
@@ -103,6 +73,7 @@ func (tree *BPlusTree) splitNode(n *node.Node, key int, link *node.Node) (int, *
 		}
 	}
 	n.N = splitOffset
+	n.Next = newNode
 
 	if pos < splitOffset {
 		n.Insert(key, link)
@@ -115,33 +86,27 @@ func (tree *BPlusTree) splitNode(n *node.Node, key int, link *node.Node) (int, *
 
 func (tree *BPlusTree) insert(n *node.Node, key int) (int, *node.Node) {
 	// check node writes
-	i := n.N - 1
-	if n.IsLeaf {
-		if n.N == tree.GetMaxKeysCount() {
-			return tree.splitNode(n, key, nil)
-		} else {
-			n.Insert(key, nil)
-			return key, nil
-		}
-	} else {
+	var newChild *node.Node
+	if !n.IsLeaf {
+		i := n.N - 1
 		for i >= 0 && key < n.Keys[i] {
 			i = i - 1
 		}
 		i = i + 1
 		next := node.Read(n.Links[i])
-
-		key, newChild := tree.insert(next, key)
-		fmt.Println(key, newChild)
-		if newChild != nil {
-			if n.N == tree.GetMaxKeysCount() {
-				return tree.splitNode(n, key, newChild)
-			} else {
-				n.Insert(key, newChild)
-				return key, nil
-			}
-		}
-		return key, nil
+		key, newChild = tree.insert(next, key)
 	}
+
+	fmt.Println(key, newChild)
+	if newChild != nil || n.IsLeaf {
+		if n.N == tree.GetMaxKeysCount() {
+			return tree.splitNode(n, key, newChild)
+		} else {
+			n.Insert(key, newChild)
+			return key, nil
+		}
+	}
+	return key, nil
 }
 
 // Search first key in BTree
@@ -154,8 +119,6 @@ func search(n *node.Node, key int) (*node.Node, int) {
 		return key < n.Keys[i]
 	})
 	if n.IsLeaf {
-		fmt.Println(n)
-		fmt.Println(i, key, n.Keys[i - 1])
 		i--
 		if i < n.N && i >= 0 && key == n.Keys[i] {
 			return n, i
@@ -165,22 +128,41 @@ func search(n *node.Node, key int) (*node.Node, int) {
 	return search(node.Read(n.Links[i]), key)
 }
 
-// func searchAll(n *node.Node, key int) (*node.Node, int) {
-// 	i := sort.Search(n.N, func(i int) bool {
-// 		return key <= n.Keys[i]
-// 	})
-// 	fmt.Println(i)
-// 	if i < n.N && key == n.Keys[i] {
-// 		fmt.Println(n, i)
-// 		fmt.Println(node.Read(n.Links[i]))
-// 		return search(node.Read(n.Links[i+1]), key, all)
-// 	}
-// 	if n.IsLeaf {
-// 		return nil, -1
-// 	} else {
-// 		return search(node.Read(n.Links[i]), key, all)
-// 	}
-// }
+func (tree *BPlusTree) getLeftest() *node.Node {
+	current := tree.root
+	for !current.IsLeaf {
+		current = current.Links[0]
+	}
+	return current
+}
+
+// SearchRange find range of keys and put it to channel
+func (tree *BPlusTree) SearchRange(ch chan int, left *int, right *int) {
+	var currentNode *node.Node
+	var i int
+	if left == nil {
+		currentNode = tree.getLeftest()
+		i = 0
+	} else {
+		currentNode, i = search(tree.root, *left)
+	}
+	if currentNode == nil {
+		return
+	}
+	for currentNode != nil {
+		for i < currentNode.N {
+			if right != nil && currentNode.Keys[i] >= *right {
+				break
+			}
+			if left == nil || currentNode.Keys[i] >= *left {
+				ch <- currentNode.Keys[i]
+			}
+			i++
+		}
+		i = 0
+		currentNode = currentNode.Next
+	}
+}
 
 // Print BTree
 func (tree *BPlusTree) Print() {
@@ -188,6 +170,7 @@ func (tree *BPlusTree) Print() {
 	PrintTree(tree.root)
 }
 
+// PrintTree print B+ tree from node
 func PrintTree(n *node.Node) {
 	fmt.Println(n)
 	for i := 0; i < n.N; i++ {
