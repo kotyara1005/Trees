@@ -50,7 +50,6 @@ func (tree *BPlusTree) Insert(key int) {
 
 // Returns delimiter, new Node
 func (tree *BPlusTree) splitNode(n *node.Node, key int, link *node.Node) (int, *node.Node) {
-	fmt.Println(n)
 	splitOffset := tree.t + 1
 
 	pos := sort.Search(n.N, func(i int) bool {
@@ -80,7 +79,6 @@ func (tree *BPlusTree) splitNode(n *node.Node, key int, link *node.Node) (int, *
 	} else {
 		newNode.Insert(key, link)
 	}
-	fmt.Println(n, newNode)
 	return newNode.Keys[0], newNode
 }
 
@@ -97,13 +95,11 @@ func (tree *BPlusTree) insert(n *node.Node, key int) (int, *node.Node) {
 		key, newChild = tree.insert(next, key)
 	}
 
-	fmt.Println(key, newChild)
 	if newChild != nil || n.IsLeaf {
-		if n.N == tree.GetMaxKeysCount() {
-			return tree.splitNode(n, key, newChild)
-		} else {
+		if n.N < tree.GetMaxKeysCount() {
 			n.Insert(key, newChild)
-			return key, nil
+		} else {
+			return tree.splitNode(n, key, newChild)
 		}
 	}
 	return key, nil

@@ -20,7 +20,7 @@ func (node *Node) Insert(key int, link *Node) {
 
 	if !node.IsLeaf {
 		var j int
-		for j = node.N; j > i+1; j-- {
+		for j = node.N - 1; j > i+1; j-- {
 			node.Links[j+1] = node.Links[j]
 		}
 		node.Links[j+1] = link
