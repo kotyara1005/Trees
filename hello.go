@@ -8,14 +8,14 @@ import (
 )
 
 func main() {
-	t := btree.Create(2)
-	for i := 1; i <= 14; i++ {
+	t := btree.Create(2, true)
+	for i := 1; i <= 15; i++ {
 		t.Insert(i)
 	}
 	fmt.Println("==============")
 	t.Print()
 	fmt.Println("==============")
-	
+
 	ch := make(chan int)
 	go func() {
 		r := 9
@@ -32,7 +32,7 @@ func main() {
 }
 
 func testSearch() {
-	t := btree.Create(2)
+	t := btree.Create(2, false)
 	for i := 1; i <= 13; i++ {
 		t.Insert(i)
 	}

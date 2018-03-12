@@ -13,10 +13,11 @@ import (
 type BPlusTree struct {
 	root *node.Node
 	t    int
+	uniq bool
 }
 
 // Create new BTree
-func Create(t int) *BPlusTree {
+func Create(t int, uniq bool) *BPlusTree {
 	x := node.Allocate(t)
 	x.IsLeaf = true
 	x.N = 0
@@ -24,6 +25,7 @@ func Create(t int) *BPlusTree {
 	tree := new(BPlusTree)
 	tree.root = x
 	tree.t = t
+	tree.uniq = uniq
 	return tree
 }
 
@@ -78,9 +80,9 @@ func (tree *BPlusTree) splitNode(n *node.Node, key int, link *node.Node) (int, *
 	n.Next = newNode
 
 	if pos < splitOffset {
-		n.Insert(key, link)
+		n.Insert(key, link, tree.uniq)
 	} else {
-		newNode.Insert(key, link)
+		newNode.Insert(key, link, tree.uniq)
 	}
 	return newNode.Keys[0], newNode
 }
@@ -89,6 +91,7 @@ func (tree *BPlusTree) insert(n *node.Node, key int) (int, *node.Node) {
 	// check node writes
 	var newChild *node.Node
 	if !n.IsLeaf {
+		// TODO use bin search
 		i := n.N - 1
 		for i >= 0 && key < n.Keys[i] {
 			i = i - 1
@@ -100,7 +103,7 @@ func (tree *BPlusTree) insert(n *node.Node, key int) (int, *node.Node) {
 
 	if newChild != nil || n.IsLeaf {
 		if n.N < tree.GetMaxKeysCount() {
-			n.Insert(key, newChild)
+			n.Insert(key, newChild, n.IsLeaf && tree.uniq)
 		} else {
 			return tree.splitNode(n, key, newChild)
 		}

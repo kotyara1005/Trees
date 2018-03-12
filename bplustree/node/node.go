@@ -1,5 +1,9 @@
 package node
 
+import (
+	"sort"
+)
+
 type Node struct {
 	IsLeaf bool
 	N      int
@@ -10,8 +14,15 @@ type Node struct {
 }
 
 // Insert to nonfull node
-func (node *Node) Insert(key int, link *Node) {
-	var i int
+func (node *Node) Insert(key int, link *Node, uniq bool) {
+	// TODO refactor
+	i := sort.Search(node.N, func(i int) bool {
+		return key <= node.Keys[i]
+	})
+	if uniq && node.Keys[i] == key {
+		return
+	}
+
 	for i = node.N - 1; i >= 0 && key < node.Keys[i]; i-- {
 		node.Keys[i+1] = node.Keys[i]
 	}
