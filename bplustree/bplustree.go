@@ -7,8 +7,6 @@ import (
 	"github.com/kotyara1005/trees/bplustree/node"
 )
 
-// TODO add not uniq index
-
 // BPlusTree class
 type BPlusTree struct {
 	root *node.Node
