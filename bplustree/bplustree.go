@@ -38,7 +38,7 @@ func (tree *BPlusTree) GetSplitOffset() int {
 }
 
 // Insert new key to BPlusTree
-func (tree *BPlusTree) Insert(key int) {
+func (tree *BPlusTree) Insert(key node.Keyer) {
 	key, newChild := tree.insert(tree.root, key)
 	if newChild != nil {
 		oldRoot := tree.root
@@ -52,9 +52,9 @@ func (tree *BPlusTree) Insert(key int) {
 }
 
 // Returns delimiter, new Node
-func (tree *BPlusTree) splitNode(n *node.Node, key int, link *node.Node) (int, *node.Node) {
+func (tree *BPlusTree) splitNode(n *node.Node, key node.Keyer, link *node.Node) (node.Keyer, *node.Node) {
 	pos := sort.Search(n.N, func(i int) bool {
-		return key <= n.Keys[i]
+		return n.Keys[i].LessOrEuqal(key)
 	})
 	splitOffset := tree.GetSplitOffset()
 
@@ -85,13 +85,13 @@ func (tree *BPlusTree) splitNode(n *node.Node, key int, link *node.Node) (int, *
 	return newNode.Keys[0], newNode
 }
 
-func (tree *BPlusTree) insert(n *node.Node, key int) (int, *node.Node) {
+func (tree *BPlusTree) insert(n *node.Node, key node.Keyer) (node.Keyer, *node.Node) {
 	// check node writes
 	var newChild *node.Node
 	if !n.IsLeaf {
 		// TODO use bin search
 		i := n.N - 1
-		for i >= 0 && key < n.Keys[i] {
+		for i >= 0 && n.Keys[i].Less(key) {
 			i = i - 1
 		}
 		i = i + 1
@@ -110,13 +110,13 @@ func (tree *BPlusTree) insert(n *node.Node, key int) (int, *node.Node) {
 }
 
 // Search first key in BTree
-func (tree *BPlusTree) Search(key int) (*node.Node, int) {
+func (tree *BPlusTree) Search(key node.Keyer) (*node.Node, int) {
 	return search(tree.root, key)
 }
 
-func search(n *node.Node, key int) (*node.Node, int) {
+func search(n *node.Node, key node.Keyer) (*node.Node, int) {
 	i := sort.Search(n.N, func(i int) bool {
-		return key < n.Keys[i]
+		return n.Keys[i].Less(key)
 	})
 	if n.IsLeaf {
 		i--
@@ -137,24 +137,24 @@ func (tree *BPlusTree) getLeftest() *node.Node {
 }
 
 // SearchRange find range of keys and put it to channel
-func (tree *BPlusTree) SearchRange(ch chan int, left *int, right *int) {
+func (tree *BPlusTree) SearchRange(ch chan node.Keyer, left node.Keyer, right node.Keyer) {
 	var currentNode *node.Node
 	var i int
 	if left == nil {
 		currentNode = tree.getLeftest()
 		i = 0
 	} else {
-		currentNode, i = search(tree.root, *left)
+		currentNode, i = search(tree.root, left)
 	}
 	if currentNode == nil {
 		return
 	}
 	for currentNode != nil {
 		for i < currentNode.N {
-			if right != nil && currentNode.Keys[i] >= *right {
+			if right != nil && currentNode.Keys[i].LessOrEuqal(right) {
 				break
 			}
-			if left == nil || currentNode.Keys[i] >= *left {
+			if left == nil || currentNode.Keys[i].LessOrEuqal(left) {
 				ch <- currentNode.Keys[i]
 			}
 			i++
